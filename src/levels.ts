@@ -1,0 +1,9 @@
+import type {QS} from './game'
+export interface Level{name:string;hint:string;target:QS;grid:string[]}
+export const LEVELS:Level[]=[
+ {name:"Level 1 · Flip the qubit",hint:"Find X to flip |0⟩ to |1⟩, then collect every checkpoint before the exit opens.",target:'1',grid:["#################","#S..............#","#.##.######.###.#","#.#...###.....#.#","#.#.Z.###..X..#.#","#C#...###.....#.#","#.##.######.###.#","#.......C.......#","#.#############.#","#.......C.......E","#################"]},
+ {name:"Level 2 · Phase matters",hint:"One gate guards the only way east. Plan your state before you cross it.",target:'1',grid:["#################","#S....#........C#","#.###.#.#######.#","#.#...#C#...H.#.#","#.#.#####.###.#.#","#.#.H..Z..#...#.#","#.#######.#.###.#","#.......#.#.....#","#.##.##.#.#####.#","#C#Z..#...#E.M..#","#################"]},
+ {name:"Level 3 · Measurement challenge",hint:"M collapses a superposition and sends you back to the start. Arrive in |−⟩ and let H finish the job.",target:'1',grid:["#################","#S#..X#...#C....#","#.##.##.#.#####.#","#.......#.#.....#","#.#######.#.###.#","#.#.HZ.M..#..M#.#","#.#.#####.###.#.#","#.#...#E#...H.#.#","#.###.#.#######.#","#C....#........C#","#################"]},
+ {name:"Level 4 · Find |−⟩",hint:"Target is |−⟩. Y flips both 0↔1 and +↔−. Plan your state before the crossing.",target:'-',grid:["#################","#.....#...#.C.#X#","#.#####.#.##.##.#","#.....#.#.Z..H..#","#.###.#M#######.#","#.#..C#.......#.#","#.#.###.#####.#.#","#.#.Y...#E#...#.#","#.#######.#.###.#","#C........#....S#","#################"]},
+ {name:"Level 5 · Two doors",hint:"Both passages down are guarded. Y flips phase of superpositions, X does not. Choose your route.",target:'-',grid:["#################","#S..............#","#.##.######.###.#","#.#Z..###.....#.#","#.#.H.###.Z.M.#.#","#C#...###.....#.#","#.##.######.###.#","#.......C.......#","#Y#############X#","#.......C.......E","#################"]},
+]
