@@ -5,7 +5,7 @@ import {addScore,clearScores,loadScores} from './scores'
 type Screen='menu'|'how'|'select'|'game'|'win'|'scores'
 const SUB='Birzeit University - Qiskit Fall Fest 2026 Application'
 const Logo=({s=140}:{s?:number})=><img src="/logo.png" alt="Quantum Computing Club logo" style={{height:s,width:'auto'}} className="logo"/>
-const Foot=()=><div className="foot">Birzeit University · Quantum Computing Club · Qiskit Fall Fest 2026 · ESC = back</div>
+const Foot=()=><div className="foot">Birzeit University · Quantum Computing Club · Qiskit Fall Fest 2026 · Game Developer: Lana Daramna · ESC = back</div>
 
 function Hall({n}:{n:number}){
  const a=loadScores().slice(0,n)
