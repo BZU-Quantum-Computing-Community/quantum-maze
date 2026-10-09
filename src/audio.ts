@@ -1,7 +1,3 @@
-/* Quantum Maze Race · audio engine (everything is synthesised, no audio files)
-   - SFX bus (loud, punchy) + MUSIC bus (per-level procedural theme) -> compressor -> speakers
-   - Music theme depends on the level difficulty: faster, darker, more percussion as levels get harder
-   - Music intensity rises while you collect checkpoints and peaks when the exit opens            */
 const DEBUG=()=>!!(globalThis as any).__QMR_DEBUG
 const rd=(k:string,d:boolean)=>{try{const v=localStorage.getItem(k);return v===null?d:v==='1'}catch{return d}}
 const wr=(k:string,v:boolean)=>{try{localStorage.setItem(k,v?'1':'0')}catch{}}

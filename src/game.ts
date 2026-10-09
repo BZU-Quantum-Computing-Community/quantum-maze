@@ -1,27 +1,16 @@
 import {LEVELS} from './levels'
 import type {Level} from './levels'
-export {LEVELS}
+import {tone,sfx} from './audio'
+import {t} from './i18n'
+export {LEVELS,tone,sfx}
 export type QS='0'|'1'|'+'|'-'
-export const SYM:Record<QS,string>={'0':'|0⟩','1':'|1⟩','+':'|+⟩','-':'|−⟩'}
+export const SYM:Record<QS,string>={'0':'\u2066|0⟩\u2069','1':'\u2066|1⟩\u2069','+':'\u2066|+⟩\u2069','-':'\u2066|−⟩\u2069'} // LTR isolates keep the symbols intact inside Arabic text
 export const COLORS=['#a855f7','#22d3ee','#f472b6','#fb923c']
 export const CTRL=['W A S D','ARROW KEYS','I J K L','NUMPAD 8 4 5 6']
 const KEYS=[['KeyW','KeyS','KeyA','KeyD'],['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'],['KeyI','KeyK','KeyJ','KeyL'],['Numpad8','Numpad5','Numpad4','Numpad6']]
 const DIRS=[[0,-1],[0,1],[-1,0],[1,0]]
 export const CELL=40
 export const fmt=(t:number)=>{const m=Math.floor(t/60);return String(m).padStart(2,'0')+':'+(t-m*60).toFixed(2).padStart(5,'0')}
-let ac:AudioContext|null=null
-export const tone=(f:number,d:number,type:OscillatorType='sine',at=0,v=0.06)=>{try{ac=ac||new AudioContext();const t=ac.currentTime+at,o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.setValueAtTime(f,t);g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(0.0001,t+d);o.connect(g);g.connect(ac.destination);o.start(t);o.stop(t+d)}catch{}}
-export const sfx={
- H:()=>{tone(440,0.25);tone(660,0.25,'sine',0.08)},
- X:()=>{tone(330,0.1,'square');tone(220,0.15,'square',0.08)},
- Y:()=>{tone(392,0.12,'square');tone(587,0.2,'triangle',0.08)},
- Z:()=>{tone(300,0.3,'triangle');tone(450,0.3,'triangle',0.1)},
- M:()=>{for(let i=0;i<6;i++)tone(900-i*120,0.08,'sawtooth',i*0.05,0.05)},
- cp:()=>{tone(660,0.12,'triangle');tone(880,0.18,'triangle',0.1)},
- lock:()=>tone(110,0.25,'sawtooth',0,0.07),
- unlock:()=>[523,659,784,1047].forEach((f,i)=>tone(f,0.25,'triangle',i*0.09)),
- win:()=>{[523,659,784,1047,784,1047,1319].forEach((f,i)=>tone(f,0.4,'triangle',i*0.12,0.08));[523,659,784,1047].forEach(f=>tone(f,1.4,'sine',0.9,0.05))}
-}
 type Gates={H:number;X:number;Z:number;M:number;Y:number}
 interface P{id:number;x:number;y:number;px:number;py:number;sx:number;sy:number;was:boolean;state:QS;phase:boolean;color:string;keys:string[];cd:number;cps:Set<string>;gates:Gates;finished:boolean;finishTime?:number;mistakes:number;last:string}
 interface Part{x:number;y:number;vx:number;vy:number;life:number;color:string}
@@ -51,26 +40,27 @@ export class Engine{
    p.cd-=dt;if(p.cd>0)continue
    const d=p.keys.findIndex(k=>this.keys.has(k));if(d<0)continue
    const nx=p.x+DIRS[d][0],ny=p.y+DIRS[d][1]
-   if(this.level.grid[ny]?.[nx]&&this.level.grid[ny][nx]!=='#'){p.x=nx;p.y=ny;p.cd=0.13;this.onCell(p)}
+   if(this.level.grid[ny]?.[nx]&&this.level.grid[ny][nx]!=='#'){p.x=nx;p.y=ny;p.cd=0.13;sfx.step(p.state);this.onCell(p)}
   }
  }
  onCell(p:P){
   const c=this.level.grid[p.y][p.x],k=p.x+','+p.y;if(k===p.last)return;p.last=k
   const before=p.state,T=this.level.target
-  if(c==='X'){p.gates.X++;sfx.X();if(p.state==='0'||p.state==='1'){p.state=p.state==='0'?'1':'0';this.say('X GATE · BIT FLIP\n'+SYM[before]+' → '+SYM[p.state])}else this.say('X GATE · BIT FLIP\nNo effect on '+SYM[p.state]+' — only |0⟩ and |1⟩ flip.')}
-  else if(c==='Y'){p.gates.Y++;sfx.Y();p.state=({'0':'1','1':'0','+':'-','-':'+'} as Record<QS,QS>)[p.state];this.say('Y GATE · FLIP + PHASE\n'+SYM[before]+' → '+SYM[p.state]+'\nY does what X and Z do together.')}
-  else if(c==='H'){p.gates.H++;sfx.H();p.state=({'0':'+','+':'0','1':'-','-':'1'} as Record<QS,QS>)[p.state];this.say('H GATE · SUPERPOSITION\n'+SYM[before]+' → '+SYM[p.state]+(p.state==='0'||p.state==='1'?'\nH undoes the superposition!':''))}
-  else if(c==='Z'){p.gates.Z++;sfx.Z();p.phase=!p.phase;if(p.state==='+'||p.state==='-'){p.state=p.state==='+'?'-':'+';this.say('Z GATE · PHASE FLIP\n'+SYM[before]+' → '+SYM[p.state]+'\nSame odds, opposite phase. Apply H to see the difference!')}else this.say('Z GATE · PHASE FLIP\nNo visible effect on '+SYM[p.state]+'. Try it in superposition.')}
-  else if(c==='M'){p.gates.M++;sfx.M();if(p.state==='+'||p.state==='-'){p.state=Math.random()<0.5?'0':'1';this.burst(p,40);p.x=p.sx;p.y=p.sy;p.px=p.x;p.py=p.y;p.last='';this.say('MEASURE · COLLAPSE\nSuperposition collapsed to '+SYM[p.state]+'.\nMeasuring disturbs the qubit — back to the start!')}else this.say('MEASURE\nAlready definite: '+SYM[p.state])}
-  else if(c==='C'){if(!p.cps.has(k)){p.cps.add(k);sfx.cp();this.say('CHECKPOINT '+p.cps.size+'/'+this.total)}}
+  if(c==='X'){p.gates.X++;sfx.X(p.state==='0'||p.state==='1');if(p.state==='0'||p.state==='1'){p.state=p.state==='0'?'1':'0';this.say(t('mXflip',{a:SYM[before],b:SYM[p.state]}))}else this.say(t('mXno',{a:SYM[p.state],z:SYM['0'],o:SYM['1']}))}
+  else if(c==='Y'){p.gates.Y++;sfx.Y();p.state=({'0':'1','1':'0','+':'-','-':'+'} as Record<QS,QS>)[p.state];this.say(t('mY',{a:SYM[before],b:SYM[p.state]}))}
+  else if(c==='H'){p.gates.H++;sfx.H(p.state==='0'||p.state==='1');p.state=({'0':'+','+':'0','1':'-','-':'1'} as Record<QS,QS>)[p.state];this.say(t('mH',{a:SYM[before],b:SYM[p.state]})+(p.state==='0'||p.state==='1'?t('mHundo'):''))}
+  else if(c==='Z'){p.gates.Z++;sfx.Z(p.state==='+'||p.state==='-');p.phase=!p.phase;if(p.state==='+'||p.state==='-'){p.state=p.state==='+'?'-':'+';this.say(t('mZ',{a:SYM[before],b:SYM[p.state]}))}else this.say(t('mZno',{a:SYM[p.state]}))}
+  else if(c==='M'){p.gates.M++;sfx.M(p.state==='+'||p.state==='-');if(p.state==='+'||p.state==='-'){p.state=Math.random()<0.5?'0':'1';this.burst(p,40);p.x=p.sx;p.y=p.sy;p.px=p.x;p.py=p.y;p.last='';this.say(t('mMc',{a:SYM[p.state]}))}else this.say(t('mMno',{a:SYM[p.state]}))}
+  else if(c==='C'){if(!p.cps.has(k)){p.cps.add(k);sfx.cp(p.cps.size,this.total);this.say(t('mCp',{n:p.cps.size,m:this.total}))}}
   else if(c==='E'){
-   if(this.unlocked(p)){p.finished=true;p.finishTime=this.time;if(!this.winner){this.winner=p;this.running=false};sfx.win();this.burst(p,100)}
-   else{p.mistakes++;sfx.lock();this.say('EXIT LOCKED\n'+(p.state!==T?'Required state: '+SYM[T]+'  Current: '+SYM[p.state]:'State OK, but checkpoints: '+p.cps.size+'/'+this.total))}
+   if(this.unlocked(p)){p.finished=true;p.finishTime=this.time;if(!this.winner){this.winner=p;this.running=false};sfx.win(this.level.diff);this.burst(p,100)}
+   else{p.mistakes++;sfx.lock();this.say(p.state!==T?t('mLockT',{t:SYM[T],a:SYM[p.state]}):t('mLockC',{n:p.cps.size,m:this.total}))}
   }
   if('HXZMY'.includes(c))this.burst(p)
   const u=this.unlocked(p)
-  if(u&&!p.was&&c!=='E'){this.say('✓ TARGET STATE REACHED!\nALL CHECKPOINTS DONE — EXIT UNLOCKED!');sfx.unlock()}
-  else if(!u&&p.state!==before&&p.state===T)this.say('✓ TARGET STATE REACHED!\nNow collect all checkpoints ('+p.cps.size+'/'+this.total+') without changing it.')
+  if(u&&!p.was&&c!=='E'){this.say(t('mUnlock'));sfx.unlock()}
+  else if(!u&&p.state!==before&&p.state===T){this.say(t('mTarget',{n:p.cps.size,m:this.total}));sfx.target()}
+  else if(p.was&&!u){sfx.lose()}
   p.was=u
  }
  snapshot():Snap{
